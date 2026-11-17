@@ -1,11 +1,19 @@
 import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
-const webhook = process.env.APPS_SCRIPT_URL;
-const token = process.env.DOWNLOAD_TOKEN;
-if (!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(webhook || '') || !token) {
-  throw new Error('Set APPS_SCRIPT_URL and DOWNLOAD_TOKEN in repository Actions secrets.');
+const webhook = (process.env.APPS_SCRIPT_URL || '').trim();
+const token = (process.env.DOWNLOAD_TOKEN || '').trim();
+
+if (!webhook) {
+  throw new Error('APPS_SCRIPT_URL is missing. Add it under Repository secrets and check the workflow env mapping.');
 }
+if (!token) {
+  throw new Error('DOWNLOAD_TOKEN is missing. Add it under Repository secrets and check the workflow env mapping.');
+}
+if (!/^https:\/\/script\.google\.com\/(?:macros\/s|a\/macros\/[^/]+\/s)\/[A-Za-z0-9_-]+\/exec(?:\?[^\s]*)?$/.test(webhook)) {
+  throw new Error('APPS_SCRIPT_URL is present but has the wrong format. Copy the Web app URL ending /exec from Deploy > Manage deployments. Paste without quotes.');
+}
+console.log('Both required secrets are present and the Web app URL format is valid.');
 async function callScript(payload) {
   const response = await fetch(webhook, {
     method: 'POST',

@@ -1,5 +1,4 @@
-import { readFile } from 'node:fs/promises';
-import { chromium } from 'playwright';
+import { readFile, appendFile } from 'node:fs/promises';
 
 const webhook = (process.env.APPS_SCRIPT_URL || '').trim();
 const token = (process.env.DOWNLOAD_TOKEN || '').trim();
@@ -30,10 +29,16 @@ async function callScript(payload) {
 }
 
 const status = await callScript({action: 'check'});
-if (!status.needed) {
+if (typeof status.needed !== 'boolean') throw new Error('Apps Script returned an invalid update status.');
+if (process.argv.includes('--check-only')) {
+  if (!process.env.GITHUB_OUTPUT) throw new Error('Check-only mode requires GITHUB_OUTPUT.');
+  await appendFile(process.env.GITHUB_OUTPUT, 'needed=' + status.needed + '\n');
+  console.log(status.needed ? 'New or changed notification found.' : 'Drive PDF is already current.');
+} else if (!status.needed) {
   console.log('Drive PDF already current, notification ' + status.number);
 } else {
   if (!/^\d{1,6}\/\d{4}$/.test(status.number)) throw new Error('Invalid notification number.');
+  const { chromium } = await import('playwright');
   const browser = await chromium.launch({headless: true, timeout: 30000});
   try {
     const context = await browser.newContext({acceptDownloads: true, locale: 'en-US'});

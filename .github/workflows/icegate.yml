@@ -1,52 +1,36 @@
 name: ICEGATE original PDF to Drive
+
 on:
   schedule:
-    # UTC times: Thursday 8:30 PM IST and Friday 9:00 AM IST.
-    # The date gate below restricts checks to first/third Thursday cycles.
-    - cron: '0 15 * * 4'
-    - cron: '30 3 * * 5'
+    # 03:30 UTC = 09:00 AM IST
+    # 15:30 UTC = 09:00 PM IST
+    - cron: '30 3,15 * * *'
   workflow_dispatch:
+
 permissions:
   contents: read
+
 concurrency:
   group: icegate-drive
   cancel-in-progress: false
+
 jobs:
   download:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+
     steps:
-      - name: Check publication cycle
-        id: cycle
-        shell: bash
-        run: |
-          eligible=false
-          weekday=$(TZ=Asia/Kolkata date +%u)
-          day_text=$(TZ=Asia/Kolkata date +%d)
-          day=$((10#$day_text))
-          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
-            eligible=true
-          elif [[ "$weekday" == "4" || "$weekday" == "5" ]]; then
-            if [[ "$weekday" == "5" ]]; then
-              day=$((day - 1))
-            fi
-            if (( (day >= 1 && day <= 7) || (day >= 15 && day <= 21) )); then
-              eligible=true
-            fi
-          fi
-          echo "eligible=$eligible" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
-        if: steps.cycle.outputs.eligible == 'true'
+
       - uses: actions/setup-node@v4
-        if: steps.cycle.outputs.eligible == 'true'
         with:
           node-version: '22'
+
       - run: npm ci --omit=dev
-        if: steps.cycle.outputs.eligible == 'true'
+
       - run: npx playwright install --with-deps chromium
-        if: steps.cycle.outputs.eligible == 'true'
+
       - run: node download.mjs
-        if: steps.cycle.outputs.eligible == 'true'
         env:
           APPS_SCRIPT_URL: ${{ secrets.APPS_SCRIPT_URL }}
           DOWNLOAD_TOKEN: ${{ secrets.DOWNLOAD_TOKEN }}

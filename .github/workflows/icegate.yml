@@ -2,8 +2,10 @@ name: ICEGATE original PDF to Drive
 
 on:
   schedule:
-    # Daily at 9:00 AM and 11:07 PM IST
-    - cron: '30 3,15 * * *'
+    # Daily at 9:00 AM IST
+    - cron: '30 3 * * *'
+    # Daily at 11:11 PM IST
+    - cron: '41 17 * * *'
   workflow_dispatch:
 
 permissions:

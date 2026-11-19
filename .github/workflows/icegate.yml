@@ -2,8 +2,7 @@ name: ICEGATE original PDF to Drive
 
 on:
   schedule:
-    # 03:30 UTC = 09:00 AM IST
-    # 15:30 UTC = 09:00 PM IST
+    # Daily at 9:00 AM and 9:00 PM IST
     - cron: '30 3,15 * * *'
   workflow_dispatch:
 
@@ -19,6 +18,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
+    env:
+      APPS_SCRIPT_URL: ${{ secrets.APPS_SCRIPT_URL }}
+      DOWNLOAD_TOKEN: ${{ secrets.DOWNLOAD_TOKEN }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -26,11 +29,18 @@ jobs:
         with:
           node-version: '22'
 
-      - run: npm ci --omit=dev
+      - name: Check for a new notification
+        id: notification
+        run: node download.mjs --check-only
 
-      - run: npx playwright install --with-deps chromium
+      - name: Install download software
+        if: steps.notification.outputs.needed == 'true'
+        run: npm ci --omit=dev
 
-      - run: node download.mjs
-        env:
-          APPS_SCRIPT_URL: ${{ secrets.APPS_SCRIPT_URL }}
-          DOWNLOAD_TOKEN: ${{ secrets.DOWNLOAD_TOKEN }}
+      - name: Install Chromium
+        if: steps.notification.outputs.needed == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Download original PDF and update Drive
+        if: steps.notification.outputs.needed == 'true'
+        run: node download.mjs

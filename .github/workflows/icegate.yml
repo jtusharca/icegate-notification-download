@@ -5,7 +5,7 @@ on:
     # Daily at 9:00 AM IST
     - cron: '30 3 * * *'
     # Daily at 11:11 PM IST
-    - cron: '41 17 * * *'
+    - cron: '50 17 * * *'
   workflow_dispatch:
 
 permissions:
